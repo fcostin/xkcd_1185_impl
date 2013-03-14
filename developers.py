@@ -1,3 +1,7 @@
+"""
+WARNING : this is a terrible idea. run at your own peril.
+"""
+
 import requests
 from operator import itemgetter
 from bs4 import BeautifulSoup
@@ -32,7 +36,7 @@ def implement_function(requirements, test_cases):
         print render(f.program)
         print
         print '>>> HIT ENTER TO RUN TESTS...'
-        raw_input() # hack for some degree of sanity
+        raw_input() # confirm before executing arbitrary code
         passes = [run_test(t, f) for t in test_cases]
         status = ''.join('.' if x else 'F' for x in passes)
         print '>>> TEST RESULTS: %s' % status
