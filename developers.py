@@ -23,6 +23,7 @@ CODE_SMELL = 1
 
 
 def implement_function(requirements, test_cases):
+    print '>>> REQUIREMENTS: "%s"' % requirements
     query = '%s python' % str(requirements.strip())
     for i, body_lines in enumerate(gen_candidate_solutions(query)):
         print '>>> SOLUTION %d:' % i
@@ -36,7 +37,10 @@ def implement_function(requirements, test_cases):
         status = ''.join('.' if x else 'F' for x in passes)
         print '>>> TEST RESULTS: %s' % status
         if all(passes):
+            print '>>> ALL TESTS PASSED'
             return f
+        else:
+            print '>>> TEST FAILURE'
     raise NotImplementedError((requirements, test_cases))
 
 
@@ -75,7 +79,7 @@ def get_stackexchange_links(query):
     r = requests.get(STACK_EXCHANGE_API, params=params)
     assert r.status_code == requests.codes.ok
     data = r.json()
-    print data['quota_remaining']
+    print '>>> QUOTA REMAINING: %d' % data['quota_remaining']
     return map(itemgetter('link'), data['items'])
 
 
@@ -137,7 +141,7 @@ def sniff(body_lines):
 def make_program(body_lines):
     smell = sniff(body_lines)
     if smell == CODE_SMELL:
-        name = make_random_name('test')
+        name = make_random_name('func')
         return Program(CODE_SMELL, name, [], None, list(body_lines))
     elif smell == FUNCTION_SMELL:
         name, args = match_function_definition(body_lines)
@@ -233,8 +237,25 @@ def debugged(program, max_attempts=8):
     return program
 
 
+def fix_doctest(line):
+    if line.strip().startswith('>>> '):
+        return ''
+    else:
+        return line
+
+def fix_print(line):
+    if line.strip().startswith('print '):
+        return line.replace('print ', '')
+    else:
+        return line
+
+
+def preprocessed(body_lines):
+    return [fix_doctest(fix_print(line)) for line in body_lines]
+
+
 def make_function_from_code(body_lines):
-    return UsefulFunction(debugged(make_program(body_lines)))
+    return UsefulFunction(debugged(make_program(preprocessed(body_lines))))
 
 
 def evaluate(q, program, args):

@@ -23,32 +23,39 @@ def test_reverse_list():
     assert f(['h', 'e', 'l', 'l', 'o']) == ['o', 'l', 'l', 'e', 'h']
 
 
-def test_uppercase_string():
+def test_palindrome():
     f = talented_developers.implement_function(
-        requirements = 'uppercase string',
+        requirements = 'is string a palindrome?',
         test_cases=[
-            lambda f : f('hello') == 'HELLO',
+            lambda f : f('palindrome') == False,
+            lambda f : f('palindromemordnilap') == True,
         ]
     )
 
-    assert f('goodbye') == 'GOODBYE'
+    assert f('goodbye') == False
+    assert f('tattarrattat') == True
 
 
-def test_unique_list_elements():
+def test_gcd():
     f = talented_developers.implement_function(
-        requirements = 'unique elements of list',
+        requirements = 'greatest common divisor',
         test_cases=[
-            lambda f : f(['a', 'b', 'b', 'a']) == ['a', 'b'],
+            lambda f : f(10, 7) == 1,
+            lambda f : f(3, 9) == 3,
+            lambda f : f(121, 33) == 11,
         ]
     )
 
-    assert f([5, 4, 3, 3, 2, 1]) == [1, 2, 3, 4, 5]
+    assert f(2, 3) == 1
+    assert f(2, 4) == 2
+    assert f(60, 48) == 12
+    assert f(14, 21) == 7
 
 
 
 if __name__ == '__main__':
     test_sort_list()
     test_reverse_list()
-    test_uppercase_string()
-    test_unique_list_elements()
+    test_palindrome()
+    test_gcd()
 
