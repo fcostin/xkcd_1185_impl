@@ -1,1 +1,1 @@
-inspired by alt-text from xkcd 1185.
+ref: http://xkcd.com/1185/
