@@ -8,7 +8,8 @@ import os.path
 import shutil
 import random
 import imp
-from multiprocessing import Process, Queue
+import multiprocessing
+import Queue
 
 
 STACK_EXCHANGE_API = r'https://api.stackexchange.com/2.1/search/advanced'
@@ -132,21 +133,19 @@ def query_pylint(program):
     return map(parse_pylint_issue, output.split('\n'))
 
 
-def make_excellent_program(body_lines, max_attempts=5):
-    p = make_program(body_lines)
+def debugged(program, max_attempts=5):
     for attempt in xrange(max_attempts):
-        issues = query_pylint(p)
-        p_prev = p
+        issues = query_pylint(program)
+        prev = program
         for issue in issues:
-            p = repair(p, issue)
-        if p == p_prev:
+            program = repair(program, issue)
+        if program == prev:
             break
-    return p
+    return program
 
 
-def make_function(body_lines):
-    program = make_excellent_program(body_lines)
-    return UsefulFunction(program)
+def make_function_from_code(body_lines):
+    return UsefulFunction(debugged(make_program(body_lines)))
 
 
 def evaluate(q, program, args):
@@ -157,24 +156,59 @@ def evaluate(q, program, args):
 
 
 def call(program, args, timeout=1):
-    q = Queue()
-    p = Process(target=evaluate, args=(q, program, args))
+    q = multiprocessing.Queue()
+    p = multiprocessing.Process(target=evaluate, args=(q, program, args))
     p.start()
     result = q.get(timeout=timeout)
     p.join()
     return result
 
 
-def main():
-    links = get_stackexchange_links("sort list python")
+def gen_candidate_solutions(query):
+    links = get_stackexchange_links(query)
     for link in links:
-        for code_lines in gen_code(link):
-            print code_lines
+        for body_lines in gen_answers(link):
+            yield body_lines
+
+
+def run_test(t, f):
+    try:
+        return t(f)
+    except Queue.Empty:
+        return False
+
+
+def implement_function(requirements, test_cases):
+    query = '%s python' % str(requirements.strip())
+    for i, body_lines in enumerate(gen_candidate_solutions(query)):
+        print '>>> SOLUTION %d:' % i
+        f = make_function_from_code(body_lines)
+        print
+        print render(f.program)
+        print
+        print '>>> HIT ENTER TO RUN TESTS...'
+        raw_input() # hack for some degree of sanity
+        passes = [run_test(t, f) for t in test_cases]
+        status = ''.join('.' if x else 'F' for x in passes)
+        print '>>> TEST RESULTS: %s' % status
+        if all(passes):
+            return f
+    raise NotImplementedError((requirements, test_cases))
+
+
+def main():
+    # ha ha ha ha ha!
+    f = implement_function(
+        requirements='sort a list',
+        test_cases=[
+            lambda f : f([3, 1, 2]) == [1, 2, 3],
+            lambda f : f([9, 0, 2, 1, 0]) == [0, 0, 1, 2, 9],
+        ]
+    )
+
+    print f([8, 7, 3, 8, 5, 9, 1, 5, 7, 9, 4])
+
 
 if __name__ == '__main__':
-    body_lines = ['b = sorted(a)']
-    f = make_function(body_lines)
-    print render(f.program)
-    result = f([9, 9, 3, 4, 5])
-    print result
+    main()
 
