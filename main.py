@@ -7,10 +7,36 @@ import tempfile
 import os.path
 import shutil
 import random
+import imp
+from multiprocessing import Process, Queue
+
 
 STACK_EXCHANGE_API = r'https://api.stackexchange.com/2.1/search/advanced'
-
 ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
+
+Program = namedtuple('Program', ['name', 'args', 'return_value', 'body_lines'])
+
+
+class TemporaryModule:
+    def __init__(self, program):
+        self.program = program
+        self.__d = tempfile.mkdtemp()
+        self.__f = tempfile.NamedTemporaryFile('r+', suffix='.py', dir=self.__d, delete=False)
+        self.__f.write(render(program))
+        self.__f.close()
+        self.filename = os.path.abspath(self.__f.name)
+        self.name = os.path.splitext(os.path.basename(self.filename))[0]
+
+    def __del__(self):
+        shutil.rmtree(self.__d)
+
+
+class UsefulFunction:
+    def __init__(self, program):
+        self.program = program
+
+    def __call__(self, *args):
+        return call(self.program, args)
 
 
 def get_stackexchange_links(query):
@@ -49,18 +75,20 @@ def gen_answers(url):
 def make_random_letter():
     return random.choice(ALPHABET)
 
+
 def make_random_name(n=8):
     return 'func_%s' % ''.join(make_random_letter() for _ in xrange(n))
+
 
 def indent(s):
     return '    ' + s
 
-Program = namedtuple('Program', ['name', 'args', 'return_value', 'body_lines'])
 
 def make_program(body_lines, name=None):
     if name is None:
         name = make_random_name()
     return Program(name, [], None, list(body_lines))
+
 
 def render(p):
     args = []
@@ -95,29 +123,16 @@ def repair(program, issue):
     return program_prime
 
 
-class TemporaryModule:
-    def __init__(self, program):
-        self.program = program
-        self.__d = tempfile.mkdtemp()
-        self.__f = tempfile.NamedTemporaryFile('r+', suffix='.py', dir=self.__d, delete=False)
-        self.__f.write(render(program))
-        self.__f.close()
-        self.name = os.path.abspath(self.__f.name)
-
-    def __del__(self):
-        shutil.rmtree(self.__d)
-        
-
 def query_pylint(program):
     module = TemporaryModule(program)
-    out, err = pylint.epylint.py_run(module.name, True)
+    out, err = pylint.epylint.py_run(module.filename, True)
     output = out.read()
     out.close()
     err.close()
     return map(parse_pylint_issue, output.split('\n'))
 
 
-def make_useful_function(body_lines, max_attempts=5):
+def make_excellent_program(body_lines, max_attempts=5):
     p = make_program(body_lines)
     for attempt in xrange(max_attempts):
         issues = query_pylint(p)
@@ -129,6 +144,27 @@ def make_useful_function(body_lines, max_attempts=5):
     return p
 
 
+def make_function(body_lines):
+    program = make_excellent_program(body_lines)
+    return UsefulFunction(program)
+
+
+def evaluate(q, program, args):
+    module = TemporaryModule(program)
+    m = imp.load_source(module.name, module.filename)
+    f = getattr(m, program.name)
+    q.put(f(*args))
+
+
+def call(program, args, timeout=1):
+    q = Queue()
+    p = Process(target=evaluate, args=(q, program, args))
+    p.start()
+    result = q.get(timeout=timeout)
+    p.join()
+    return result
+
+
 def main():
     links = get_stackexchange_links("sort list python")
     for link in links:
@@ -137,6 +173,8 @@ def main():
 
 if __name__ == '__main__':
     body_lines = ['b = sorted(a)']
-    p = make_useful_function(body_lines)
-    print render(p)
+    f = make_function(body_lines)
+    print render(f.program)
+    result = f([9, 9, 3, 4, 5])
+    print result
 
