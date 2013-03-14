@@ -23,8 +23,32 @@ def test_reverse_list():
     assert f(['h', 'e', 'l', 'l', 'o']) == ['o', 'l', 'l', 'e', 'h']
 
 
+def test_uppercase_string():
+    f = talented_developers.implement_function(
+        requirements = 'uppercase string',
+        test_cases=[
+            lambda f : f('hello') == 'HELLO',
+        ]
+    )
+
+    assert f('goodbye') == 'GOODBYE'
+
+
+def test_unique_list_elements():
+    f = talented_developers.implement_function(
+        requirements = 'unique elements of list',
+        test_cases=[
+            lambda f : f(['a', 'b', 'b', 'a']) == ['a', 'b'],
+        ]
+    )
+
+    assert f([5, 4, 3, 3, 2, 1]) == [1, 2, 3, 4, 5]
+
+
 
 if __name__ == '__main__':
     test_sort_list()
     test_reverse_list()
+    test_uppercase_string()
+    test_unique_list_elements()
 
