@@ -1,5 +1,5 @@
-`developrs.py` - a meta-algorithm for implementing functions
-------------------------------------------------------------
+`developers.py` - a meta-algorithm for implementing functions
+-------------------------------------------------------------
 
 [![Build Status](https://travis-ci.org/fcostin/xkcd_1185_impl.png)](https://travis-ci.org/fcostin/xkcd_1185_impl)
 
@@ -21,6 +21,7 @@
     2.  searches for your function requirements, stated as as a string in plain english
     3.  downloads code snippets
     4.  attempts to coerce the snippets into runnable functions using advanced techniques such as: string manipulation, automated repair of recognised pylint errors, and enumeration over possible interpretations while hoping for the best!
+    5.  recognises and returns the correct implementation as the first patched code snippet to pass given list of unit tests
 *   automates the latter D in TDD / BDD!
 *   do not run this code
 
