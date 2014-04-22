@@ -14,6 +14,7 @@ import random
 import imp
 import multiprocessing
 import sys
+import time
 
 
 STACK_EXCHANGE_API = r'https://api.stackexchange.com/2.1/search/advanced'
@@ -29,19 +30,19 @@ def implement_function(requirements, test_cases):
     print '>>> REQUIREMENTS: "%s"' % requirements
     query = '%s python' % str(requirements.strip())
     for i, body_lines in enumerate(gen_candidate_solutions(query)):
-        print '>>> SOLUTION %d:' % i
-        f = make_function_from_code(body_lines)
-        print
-        print render(f.program)
-        print
-        passes = [run_test(t, f) for t in test_cases]
-        status = ''.join('.' if x else 'F' for x in passes)
-        print '>>> TEST RESULTS: %s' % status
-        if all(passes):
-            print '>>> ALL TESTS PASSED'
-            return f
-        else:
-            print '>>> TEST FAILURE'
+        for j, f in enumerate(gen_functions_from_code(body_lines)):
+            print '>>> SOLUTION %r VARIANT %r:' % (i, j)
+            print
+            print render(f.program)
+            print
+            passes = [run_test(t, f) for t in test_cases]
+            status = ''.join('.' if x else 'F' for x in passes)
+            print '>>> TEST RESULTS: %s' % status
+            if all(passes):
+                print '>>> ALL TESTS PASSED'
+                return f
+            else:
+                print '>>> TEST FAILURE'
     raise NotImplementedError((requirements, test_cases))
 
 
@@ -85,6 +86,7 @@ def get_stackexchange_links(query):
 
 
 def gen_answers(url):
+    time.sleep(1.0)
     r = requests.get(url)
     assert r.status_code == requests.codes.ok
     soup = BeautifulSoup(r.content)
@@ -139,16 +141,21 @@ def sniff(body_lines):
     return CODE_SMELL
 
 
-def make_program(body_lines):
-    smell = sniff(body_lines)
-    if smell == CODE_SMELL:
+def gen_programs(body_lines):
+    if True: # assume we've got a code snippet, not a function
         name = make_random_name('func')
-        return Program(CODE_SMELL, name, [], None, list(body_lines))
-    elif smell == FUNCTION_SMELL:
-        name, args = match_function_definition(body_lines)
-        return Program(FUNCTION_SMELL, name, args, None, list(body_lines))
-    else:
-        raise ValueError(smell)
+        yield Program(CODE_SMELL, name, [], None, list(body_lines))
+    if True: # assume we've got a definition function, try to parse a "def "
+        match = match_function_definition(body_lines)
+        if match is not None:
+            name, args = match
+            yield Program(FUNCTION_SMELL, name, args, None, list(body_lines))
+    if True: # blindly assume we've got a function
+        if body_lines:
+            name = make_random_name('func')
+            body_lines = list(body_lines)
+            body_lines[0] = ('%s = ' % (name, )) + body_lines[0]
+            yield Program(FUNCTION_SMELL, name, [], None, body_lines)
 
 
 def render(p):
@@ -254,8 +261,12 @@ def preprocessed(body_lines):
     return [fix_doctest(fix_print(line)) for line in body_lines]
 
 
-def make_function_from_code(body_lines):
-    return UsefulFunction(debugged(make_program(preprocessed(body_lines))))
+def gen_functions_from_code(body_lines):
+    body_lines = preprocessed(body_lines)
+    for program in gen_programs(body_lines):
+        yield UsefulFunction(program)
+        program_prime = debugged(program)
+        yield UsefulFunction(program_prime)
 
 
 def evaluate(q, program, args):
@@ -265,7 +276,7 @@ def evaluate(q, program, args):
     q.put(f(*args))
 
 
-def call(program, args, timeout=1):
+def call(program, args, timeout=0.1):
     q = multiprocessing.Queue()
     p = multiprocessing.Process(target=evaluate, args=(q, program, args))
     p.start()

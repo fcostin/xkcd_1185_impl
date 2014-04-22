@@ -3,7 +3,7 @@ import developers as talented_developers # give them some credit.
 
 def test_sort_list():
     f = talented_developers.implement_function(
-        requirements='sort a list',
+        requirements='sort a list of integers',
         test_cases=[
             lambda f : f([3, 1, 2]) == [1, 2, 3],
             lambda f : f([9, 0, 2, 1, 0]) == [0, 0, 1, 2, 9],
