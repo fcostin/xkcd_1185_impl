@@ -4,4 +4,4 @@ python:
 install:
     - pip install -r requirements.txt
 script:
-    - py.test test_developers.py
+    - py.test -vv -s test_developers.py
