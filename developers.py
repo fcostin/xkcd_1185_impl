@@ -1,5 +1,5 @@
 """
-WARNING : this is a terrible idea. run at your own peril.
+WARNING : this is a terrible idea. it downloads and executres arbitrary code. run at your own peril.
 """
 
 import requests
@@ -13,7 +13,6 @@ import shutil
 import random
 import imp
 import multiprocessing
-import Queue
 import sys
 
 
@@ -35,8 +34,6 @@ def implement_function(requirements, test_cases):
         print
         print render(f.program)
         print
-        print '>>> HIT ENTER TO RUN TESTS...'
-        raw_input() # confirm before executing arbitrary code
         passes = [run_test(t, f) for t in test_cases]
         status = ''.join('.' if x else 'F' for x in passes)
         print '>>> TEST RESULTS: %s' % status
@@ -156,7 +153,6 @@ def make_program(body_lines):
 
 def render(p):
     if p.smell == CODE_SMELL:
-        args = []
         header = 'def %s(%s):' % (p.name, ', '.join(p.args))
         body = [indent(line) for line in p.body_lines]
         if p.return_value:
@@ -168,7 +164,7 @@ def render(p):
     elif p.smell == FUNCTION_SMELL:
         return '\n'.join(p.body_lines)
     else:
-        raise ValueError(smell)
+        raise ValueError(p.smell)
 
 
 def parse_pylint_issue(message):
@@ -227,7 +223,7 @@ def patch_last_line(program):
 def debugged(program, max_attempts=8):
     if program.smell == FUNCTION_SMELL:
         return program
-    for attempt in xrange(max_attempts):
+    for _ in xrange(max_attempts):
         issues = query_pylint(program)
         prev = program
         for issue in issues:

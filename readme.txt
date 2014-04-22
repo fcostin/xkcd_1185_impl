@@ -7,4 +7,4 @@ there are obvious security risks to running this code!
 
 apologies to stack overflow.
 
-reference: http://xkcd.com/1185/
+reference: http://xkcd.com/1185/ (look at the alt-text)
